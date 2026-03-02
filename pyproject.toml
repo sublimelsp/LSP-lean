@@ -1,0 +1,47 @@
+[tool.pyright]
+pythonVersion = "3.8"
+typeCheckingMode = "standard"
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.format]
+quote-style = "preserve"
+indent-style = "space"
+# Respect magic trailing commas.
+skip-magic-trailing-comma = false
+# Automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ruff.lint]
+# Enable preview rules.
+preview = true
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+select = ["ALL"]
+ignore = [
+    "ANN401",  # https://docs.astral.sh/ruff/rules/any-type/
+    "BLE001",  # https://docs.astral.sh/ruff/rules/blind-except/
+    "CPY001",  # https://docs.astral.sh/ruff/rules/missing-copyright-notice/
+    "C901",  # https://docs.astral.sh/ruff/rules/complex-structure/
+    "D",
+    "DOC201",  # https://docs.astral.sh/ruff/rules/docstring-missing-returns/
+    "DOC501",  # https://docs.astral.sh/ruff/rules/docstring-missing-exception/
+    "PLC0415",  # https://docs.astral.sh/ruff/rules/import-outside-top-level/
+    "PLR0912",  # https://docs.astral.sh/ruff/rules/too-many-branches/
+    "PLR0913",  # https://docs.astral.sh/ruff/rules/too-many-arguments/
+    "PLR0915",  # https://docs.astral.sh/ruff/rules/too-many-statements/
+    "PLR1702",  # https://docs.astral.sh/ruff/rules/too-many-nested-blocks/
+    "PLR6301",  # https://docs.astral.sh/ruff/rules/no-self-use/
+    "Q000",  # https://docs.astral.sh/ruff/rules/bad-quotes-inline-string/#bad-quotes-inline-string-q000
+    "RUF001",
+    "TID252",  # https://docs.astral.sh/ruff/rules/relative-imports/
+    "TRY002",  # https://docs.astral.sh/ruff/rules/raise-vanilla-class/
+]
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+combine-as-imports = true
+order-by-type = false
+required-imports = ["from __future__ import annotations"]

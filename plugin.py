@@ -1,23 +1,20 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import sublime
+from LSP.plugin import AbstractPlugin, Session, SessionViewProtocol, register_plugin, unregister_plugin
+from typing_extensions import override
+
 from .plugin_infoview import LeanInfoview
 from .plugin_unicode import unicode_input
-from .plugin_utils import PACKAGE_NAME
-from .plugin_utils import SETTINGS_FILE
-from LSP.plugin import AbstractPlugin
-from LSP.plugin import register_plugin
-from LSP.plugin import Session
-from LSP.plugin import SessionViewProtocol
-from LSP.plugin import unregister_plugin
-from typing import override
-import sublime
-import weakref
+from .plugin_utils import PACKAGE_NAME, SETTINGS_FILE
+
+if TYPE_CHECKING:
+    import weakref
 
 
 class Lean(AbstractPlugin):
-    """
-    Represents the plugin itself
-    """
 
     @classmethod
     def name(cls) -> str:
@@ -29,15 +26,13 @@ class Lean(AbstractPlugin):
         file_path = f"Packages/{PACKAGE_NAME}/{file_name}"
         return sublime.load_settings(file_name), file_path
 
-    def __init__(self, weaksession: 'weakref.ref[Session]') -> None:
+    def __init__(self, weaksession: weakref.ref[Session]) -> None:
         super().__init__(weaksession)
         self.lean_infoview: LeanInfoview = LeanInfoview()
 
     @override
-    def on_selection_modified_async(self, session_view: SessionViewProtocol):
-        """
-        Called when cursor position changes, performs goal state request
-        """
+    def on_selection_modified_async(self, session_view: SessionViewProtocol) -> None:
+        """Call when cursor position changes, performs goal state request."""
         session = session_view.session
         view = session_view.view
         # Get cursor position

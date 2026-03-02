@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-from .plugin_unicode_abbreviations import get_default_abbreviations
-from .plugin_utils import get_lean_session
-from .plugin_utils import PACKAGE_NAME
-from .plugin_utils import SETTING_UNICODE_CUSTOM
-from .plugin_utils import SETTING_UNICODE_EAGER
-from .plugin_utils import SETTING_UNICODE_ENABLED
-from .plugin_utils import SETTING_UNICODE_ENDER
-from .plugin_utils import SETTING_UNICODE_LEADER
-from .plugin_utils import SETTINGS_FILE
-from LSP.plugin import LspTextCommand
-from LSP.plugin import LspWindowCommand
 import sublime
 import sublime_plugin
+from LSP.plugin import LspTextCommand, LspWindowCommand
+
+from .plugin_unicode_abbreviations import get_default_abbreviations
+from .plugin_utils import (
+    PACKAGE_NAME,
+    SETTINGS_FILE,
+    SETTING_UNICODE_CUSTOM,
+    SETTING_UNICODE_EAGER,
+    SETTING_UNICODE_ENABLED,
+    SETTING_UNICODE_ENDER,
+    SETTING_UNICODE_LEADER,
+    get_lean_session,
+)
 
 
 class LeanUnicodeInput:
@@ -20,11 +22,11 @@ class LeanUnicodeInput:
     Manages unicode abbreviation translations for Lean
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.abbreviations: dict[str, str] = {}
         self.prefix_tree: set[str] = set()
 
-    def load_abbreviations(self):
+    def load_abbreviations(self) -> None:
         """
         Load abbreviations from the bundled JSON file and custom translations
         """
@@ -32,19 +34,19 @@ class LeanUnicodeInput:
         self.abbreviations = get_default_abbreviations()
         # Load custom translations from settings
         settings = sublime.load_settings(SETTINGS_FILE)
-        custom: dict[str, str] = settings.get("settings", {}).get(SETTING_UNICODE_CUSTOM, {})  # type:ignore
+        custom: dict[str, str] = settings.get("settings", {}).get(SETTING_UNICODE_CUSTOM, {})  # pyright: ignore[reportAssignmentType, reportAttributeAccessIssue]
         if custom:
             self.abbreviations.update(custom)
         # Build prefix tree for efficient lookup
         self.build_prefix_tree()
         print(f"{PACKAGE_NAME}: Loaded {len(self.abbreviations)} abbreviations")
 
-    def build_prefix_tree(self):
+    def build_prefix_tree(self) -> None:
         """
         Build a set of all prefixes to determine if an abbreviation is complete
         """
         self.prefix_tree = set()
-        for abbrev in self.abbreviations.keys():
+        for abbrev in self.abbreviations:
             for i in range(1, len(abbrev) + 1):
                 self.prefix_tree.add(abbrev[:i])
 
@@ -61,11 +63,10 @@ class LeanUnicodeInput:
         """
         if not strict:
             return (text in self.abbreviations)
-        else:
-            if (text not in self.abbreviations):
-                return False
-            # Check if this abbreviation is a prefix of any other
-            return not any((text != abbrev and abbrev.startswith(text)) for abbrev in self.abbreviations.keys())
+        if (text not in self.abbreviations):
+            return False
+        # Check if this abbreviation is a prefix of any other
+        return not any((text != abbrev and abbrev.startswith(text)) for abbrev in self.abbreviations)
 
     def get_replacement(self, text: str) -> str | None:
         """
@@ -97,14 +98,14 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
     def is_applicable(cls, settings: sublime.Settings) -> bool:
         # Only activate for Lean files
         syntax = settings.get('syntax')
-        return (syntax is not None) and ('Lean' in syntax)  # type:ignore
+        return (syntax is not None) and ('Lean' in syntax)
 
-    def __init__(self, view: sublime.View):
+    def __init__(self, view: sublime.View) -> None:
         super().__init__(view)
         self.abbrev_text: str = ""
         self.abbrev_region: sublime.Region | None = None
 
-    def on_modified(self):
+    def on_modified(self) -> None:
         """
         Called when the view is modified
         """
@@ -112,12 +113,12 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
         if not session:
             sublime.status_message(f"{PACKAGE_NAME}: No active session")
             return
-        enabled: bool = session.config.settings.get(SETTING_UNICODE_ENABLED)  # type:ignore
+        enabled: bool = session.config.settings.get(SETTING_UNICODE_ENABLED)
         if not enabled:
             return
-        leader: str = session.config.settings.get(SETTING_UNICODE_LEADER)  # type:ignore
-        ender: str = session.config.settings.get(SETTING_UNICODE_ENDER)  # type:ignore
-        eager: bool = session.config.settings.get(SETTING_UNICODE_EAGER)  # type:ignore
+        leader: str = session.config.settings.get(SETTING_UNICODE_LEADER)
+        ender: str = session.config.settings.get(SETTING_UNICODE_ENDER)
+        eager: bool = session.config.settings.get(SETTING_UNICODE_EAGER)
         # Get the cursor position
         sel = self.view.sel()
         if len(sel) == 0:
@@ -126,18 +127,15 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
         if self.abbrev_region and self.abbrev_region.contains(point - 1):
             # Check if we're in the middle of an abbreviation
             self.update_abbreviation(point, leader, ender, eager)
-        else:
-            # Check if we just typed the leader character
-            if (point > 0):
-                start = point - len(leader)
-                prev_char = self.view.substr(sublime.Region(start, point))
-                if (prev_char == leader):
-                    # Start tracking abbreviation
-                    self.abbrev_region = sublime.Region(start, point)
-                    self.abbrev_text = ""
-                    # print(f"{PACKAGE_NAME}: Started abbreviation sequence at {point}")
+        elif (point > 0):  # Check if we just typed the leader character
+            start = point - len(leader)
+            prev_char = self.view.substr(sublime.Region(start, point))
+            if (prev_char == leader):
+                # Start tracking abbreviation
+                self.abbrev_region = sublime.Region(start, point)
+                self.abbrev_text = ""
 
-    def update_abbreviation(self, point: int, leader: str, ender: str, eager: bool):
+    def update_abbreviation(self, point: int, leader: str, ender: str, eager: bool) -> None:
         """
         Update the current abbreviation being typed
         """
@@ -174,9 +172,9 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
                     return
             self.abbrev_text = ""
             self.abbrev_region = None
-            sublime.error_message(f"{PACKAGE_NAME}: Invalid abbreviation: \"{abbrev_text}\"")
+            sublime.error_message(f'{PACKAGE_NAME}: Invalid abbreviation: "{abbrev_text}"')
 
-    def replace_abbreviation(self, replacement: str):
+    def replace_abbreviation(self, replacement: str) -> None:
         """
         Replace the abbreviation with its unicode character
         """
@@ -191,11 +189,11 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
         self.view.run_command('lean_replace_abbreviation', {
             'region_begin': abbrev_region.begin(),
             'region_end': abbrev_region.end(),
-            'replacement': replacement
+            'replacement': replacement,
         })
-        sublime.status_message(f"{PACKAGE_NAME}: Completed abbreviation: \"{abbrev_text}\" → \"{replacement}\"")
+        sublime.status_message(f'{PACKAGE_NAME}: Completed abbreviation: "{abbrev_text}" → "{replacement}"')
 
-    def on_selection_modified(self):
+    def on_selection_modified(self) -> None:
         """
         Called when selection (cursor) moves
         """
@@ -253,7 +251,7 @@ class LeanShowAbbreviationsCommand(LspWindowCommand):
         content = "Lean Unicode Abbreviations\n"
         content += "=" * 50 + "\n\n"
         settings = sublime.load_settings(SETTINGS_FILE)
-        leader: str = settings.get("settings", {}).get(SETTING_UNICODE_LEADER, "\\")  # type:ignore
+        leader: str = settings.get("settings", {}).get(SETTING_UNICODE_LEADER, "\\")
         # Sort abbreviations by category (heuristic)
         abbrevs = sorted(unicode_input.abbreviations.items())
         for abbrev, char in abbrevs:

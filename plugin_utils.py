@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-from LSP.plugin import Session
+from typing import TYPE_CHECKING
+
 from LSP.plugin.core.registry import windows
-import sublime
+
+if TYPE_CHECKING:
+    import sublime
+    from LSP.plugin import Session
 
 # Package name
 PACKAGE_NAME = "LSP-lean"
