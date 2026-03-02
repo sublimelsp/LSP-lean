@@ -1,23 +1,18 @@
-import os
-import json
+from __future__ import annotations
 
+from .plugin_unicode_abbreviations import get_default_abbreviations
+from .plugin_utils import get_lean_session
+from .plugin_utils import PACKAGE_NAME
+from .plugin_utils import SETTING_UNICODE_CUSTOM
+from .plugin_utils import SETTING_UNICODE_EAGER
+from .plugin_utils import SETTING_UNICODE_ENABLED
+from .plugin_utils import SETTING_UNICODE_ENDER
+from .plugin_utils import SETTING_UNICODE_LEADER
+from .plugin_utils import SETTINGS_FILE
+from LSP.plugin import LspTextCommand
+from LSP.plugin import LspWindowCommand
 import sublime
 import sublime_plugin
-from LSP.plugin import LspTextCommand, LspWindowCommand, Session
-from LSP.plugin.core.typing import Optional, Set, Dict
-
-from .plugin_utils import (
-    PACKAGE_NAME,
-    SETTINGS_FILE,
-    SETTING_UNICODE_ENABLED,
-    SETTING_UNICODE_LEADER,
-    SETTING_UNICODE_ENDER,
-    SETTING_UNICODE_EAGER,
-    SETTING_UNICODE_CUSTOM,
-    get_lean_session
-)
-from .plugin_unicode_abbreviations import get_default_abbreviations
-
 
 
 class LeanUnicodeInput:
@@ -26,8 +21,8 @@ class LeanUnicodeInput:
     """
 
     def __init__(self):
-        self.abbreviations: Dict[str, str] = {}
-        self.prefix_tree: Set[str] = set()
+        self.abbreviations: dict[str, str] = {}
+        self.prefix_tree: set[str] = set()
 
     def load_abbreviations(self):
         """
@@ -37,7 +32,7 @@ class LeanUnicodeInput:
         self.abbreviations = get_default_abbreviations()
         # Load custom translations from settings
         settings = sublime.load_settings(SETTINGS_FILE)
-        custom: Dict[str, str] = settings.get("settings", {}).get(SETTING_UNICODE_CUSTOM, {}) #type:ignore
+        custom: dict[str, str] = settings.get("settings", {}).get(SETTING_UNICODE_CUSTOM, {})  # type:ignore
         if custom:
             self.abbreviations.update(custom)
         # Build prefix tree for efficient lookup
@@ -72,13 +67,13 @@ class LeanUnicodeInput:
             # Check if this abbreviation is a prefix of any other
             return not any((text != abbrev and abbrev.startswith(text)) for abbrev in self.abbreviations.keys())
 
-    def get_replacement(self, text: str) -> Optional[str]:
+    def get_replacement(self, text: str) -> str | None:
         """
         Get unicode replacement for abbreviation
         """
         return self.abbreviations.get(text)
 
-    def get_shortest_match(self, text: str) -> Optional[str]:
+    def get_shortest_match(self, text: str) -> str | None:
         """
         Get the shortest complete abbreviation matching the prefix
         """
@@ -89,10 +84,8 @@ class LeanUnicodeInput:
         return None
 
 
-
 # Global instance
 unicode_input = LeanUnicodeInput()
-
 
 
 class LeanUnicodeListener(sublime_plugin.ViewEventListener):
@@ -104,12 +97,12 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
     def is_applicable(cls, settings: sublime.Settings) -> bool:
         # Only activate for Lean files
         syntax = settings.get('syntax')
-        return (syntax is not None) and ('Lean' in syntax) #type:ignore
+        return (syntax is not None) and ('Lean' in syntax)  # type:ignore
 
     def __init__(self, view: sublime.View):
         super().__init__(view)
         self.abbrev_text: str = ""
-        self.abbrev_region: Optional[sublime.Region] = None
+        self.abbrev_region: sublime.Region | None = None
 
     def on_modified(self):
         """
@@ -119,12 +112,12 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
         if not session:
             sublime.status_message(f"{PACKAGE_NAME}: No active session")
             return
-        enabled: bool = session.config.settings.get(SETTING_UNICODE_ENABLED) #type:ignore
+        enabled: bool = session.config.settings.get(SETTING_UNICODE_ENABLED)  # type:ignore
         if not enabled:
             return
-        leader: str = session.config.settings.get(SETTING_UNICODE_LEADER) #type:ignore
-        ender: str  = session.config.settings.get(SETTING_UNICODE_ENDER) #type:ignore
-        eager: bool = session.config.settings.get(SETTING_UNICODE_EAGER) #type:ignore
+        leader: str = session.config.settings.get(SETTING_UNICODE_LEADER)  # type:ignore
+        ender: str = session.config.settings.get(SETTING_UNICODE_ENDER)  # type:ignore
+        eager: bool = session.config.settings.get(SETTING_UNICODE_EAGER)  # type:ignore
         # Get the cursor position
         sel = self.view.sel()
         if len(sel) == 0:
@@ -142,7 +135,7 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
                     # Start tracking abbreviation
                     self.abbrev_region = sublime.Region(start, point)
                     self.abbrev_text = ""
-                    #print(f"{PACKAGE_NAME}: Started abbreviation sequence at {point}")
+                    # print(f"{PACKAGE_NAME}: Started abbreviation sequence at {point}")
 
     def update_abbreviation(self, point: int, leader: str, ender: str, eager: bool):
         """
@@ -153,7 +146,7 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
         # Get the text of the current abbreviation (without leader)
         abbrev_region = sublime.Region(self.abbrev_region.begin() + len(leader), point)
         abbrev_text = self.view.substr(abbrev_region)
-        #print(f"{PACKAGE_NAME}: Typing abbreviation sequence at {point}: \"{abbrev_text}\"")
+        # print(f"{PACKAGE_NAME}: Typing abbreviation sequence at {point}: \"{abbrev_text}\"")
         if unicode_input.is_prefix(abbrev_text):
             self.abbrev_text = abbrev_text
             self.abbrev_region = sublime.Region(self.abbrev_region.begin(), point)
@@ -173,7 +166,7 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
                     if replacement:
                         self.replace_abbreviation(replacement)
                         return
-        else: # Not a valid prefix, clear pending
+        else:  # Not a valid prefix, clear pending
             if eager and unicode_input.is_complete_abbreviation(self.abbrev_text):
                 replacement = unicode_input.get_replacement(self.abbrev_text)
                 if replacement:
@@ -223,7 +216,6 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
                     self.abbrev_region = None
 
 
-
 class LeanReplaceAbbreviationCommand(LspTextCommand):
     """
     Command to replace an abbreviation with unicode.
@@ -246,7 +238,6 @@ class LeanReplaceAbbreviationCommand(LspTextCommand):
             self.view.sel().add(region.begin())
 
 
-
 class LeanShowAbbreviationsCommand(LspWindowCommand):
     """
     Show all available unicode abbreviations
@@ -262,7 +253,7 @@ class LeanShowAbbreviationsCommand(LspWindowCommand):
         content = "Lean Unicode Abbreviations\n"
         content += "=" * 50 + "\n\n"
         settings = sublime.load_settings(SETTINGS_FILE)
-        leader: str = settings.get("settings", {}).get(SETTING_UNICODE_LEADER, "\\") #type:ignore
+        leader: str = settings.get("settings", {}).get(SETTING_UNICODE_LEADER, "\\")  # type:ignore
         # Sort abbreviations by category (heuristic)
         abbrevs = sorted(unicode_input.abbreviations.items())
         for abbrev, char in abbrevs:

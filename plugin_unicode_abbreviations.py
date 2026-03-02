@@ -1,7 +1,7 @@
+from __future__ import annotations
 
-from LSP.plugin.core.typing import Dict
 
-def get_default_abbreviations() -> Dict[str, str]:
+def get_default_abbreviations() -> dict[str, str]:
     return {
     "{}": "{$CURSOR}",
     "{}_": "{$CURSOR}_",
