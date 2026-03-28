@@ -1,35 +1,33 @@
-import os
+from __future__ import annotations
 
-import sublime
-import mdpopups
-from LSP.plugin import LspTextCommand, LspWindowCommand, Request, Session, filename_to_uri
+from .plugin_utils import PACKAGE_NAME
+from .plugin_utils import SETTING_INFOVIEW_DISPLAY_CURRENT_GOALS  # SETTINGS_FILE,
+from .plugin_utils import SETTING_INFOVIEW_DISPLAY_EXPECTED_TYPE
+from .plugin_utils import SETTING_INFOVIEW_DISPLAY_NOGOALS
+from .plugin_utils import SETTING_INFOVIEW_MDPOPUP
+from .plugin_utils import SETTING_INFOVIEW_SYNTAXFILE
+from LSP.plugin import filename_to_uri
+from LSP.plugin import LspTextCommand
+from LSP.plugin import LspWindowCommand
+from LSP.plugin import Request
+from LSP.plugin import Response
+from LSP.plugin import Session
 from LSP.plugin.core.types import ClientStates
-from LSP.plugin.core.typing import Optional, Any, List
-from LSP.plugin.core.protocol import Response
-
-from .plugin_utils import (
-    PACKAGE_NAME,
-    #SETTINGS_FILE,
-    SETTING_INFOVIEW_DISPLAY_CURRENT_GOALS,
-    SETTING_INFOVIEW_DISPLAY_EXPECTED_TYPE,
-    SETTING_INFOVIEW_DISPLAY_NOGOALS,
-    SETTING_INFOVIEW_MDPOPUP,
-    SETTING_INFOVIEW_SYNTAXFILE,
-    get_lean_session
-)
-
-
+from LSP.protocol import TextDocumentPositionParams
+from typing import Any
+import mdpopups
+import os
+import sublime
 
 GoalData = Any
 TermGoalData = Any
 
 
-
 class LeanInfoview:
 
     def __init__(self) -> None:
-        self._goal_data:GoalData = {}
-        self._term_goal_data:TermGoalData = {}
+        self._goal_data: GoalData = {}
+        self._term_goal_data: TermGoalData = {}
 
     def request_goal_state(self, session: Session, view: sublime.View,
         row: int, col: int) -> None:
@@ -43,13 +41,13 @@ class LeanInfoview:
         # Lean requires saved files to process
         if view.is_dirty():
             sublime.status_message(f"{PACKAGE_NAME}: File has unsaved changes, save first")
-            #view.run_command('save') # Optionally auto-save
+            # view.run_command('save') # Optionally auto-save
             return
         if not view.file_name():
             sublime.status_message(f"{PACKAGE_NAME}: No open file path")
             return
         # Prepare LSP request parameters
-        params = {
+        params: TextDocumentPositionParams = {
             'textDocument': {
                 'uri': filename_to_uri(os.path.abspath(view.file_name() or ""))
             },
@@ -60,16 +58,16 @@ class LeanInfoview:
         }
         # Send custom Lean LSP request for plain goal
         if session.config.settings.get(SETTING_INFOVIEW_DISPLAY_CURRENT_GOALS):
-            #print(f"{PACKAGE_NAME}: Requesting goal at {row}:{col} for {view.file_name()}")
-            request: Request[GoalData] = Request("$/lean/plainGoal", params)
-            session.send_request(request, #type:ignore
+            # print(f"{PACKAGE_NAME}: Requesting goal at {row}:{col} for {view.file_name()}")
+            request: Request[TextDocumentPositionParams, GoalData] = Request("$/lean/plainGoal", params)
+            session.send_request(request,  # type:ignore
                 lambda response: self.on_goal_response(session, view, response),
                 lambda error: sublime.error_message(f"{PACKAGE_NAME} Error: {error}"))
         # Also request expected type if enabled
         if session.config.settings.get(SETTING_INFOVIEW_DISPLAY_EXPECTED_TYPE):
-            #print(f"{PACKAGE_NAME}: Requesting term at {row}:{col} for {view.file_name()}")
-            term_goal_request: Request[TermGoalData] = Request("$/lean/plainTermGoal", params)
-            session.send_request(term_goal_request, #type:ignore
+            # print(f"{PACKAGE_NAME}: Requesting term at {row}:{col} for {view.file_name()}")
+            term_goal_request: Request[TextDocumentPositionParams, TermGoalData] = Request("$/lean/plainTermGoal", params)
+            session.send_request(term_goal_request,  # type:ignore
                 lambda response: self.on_term_goal_response(session, view, response),
                 lambda error: sublime.error_message(f"{PACKAGE_NAME} Error: {error}"))
 
@@ -98,7 +96,6 @@ class LeanInfoview:
         self._term_goal_data[view.id()] = response
         # Display combined view
         self.display_combined_info(session, view)
-
 
     def display_combined_info(self, session: Session, view: sublime.View):
         """
@@ -132,10 +129,9 @@ class LeanInfoview:
             if window:
                 self.display_goal_panel(session, window, goal_data, term_goal_data)
 
-
     def display_goal_panel(self, session: Session, window: sublime.Window,
-        goal_data: Optional[GoalData] = None,
-        term_goal_data: Optional[TermGoalData] = None):
+        goal_data: GoalData | None = None,
+        term_goal_data: TermGoalData | None = None):
         """
         Display goal state and expected type in an output panel
         """
@@ -151,7 +147,7 @@ class LeanInfoview:
             # Set syntax highlighting (optional)
             panel.set_syntax_file(display_syntaxfile)
         # Format the goal and expected type for display
-        content_parts: List[str] = []
+        content_parts: list[str] = []
         # Add goal state
         if goal_data or display_nogoals:
             goal_content = self.format_goal(goal_data)
@@ -172,7 +168,7 @@ class LeanInfoview:
         # Show the panel
         window.run_command("show_panel", {"panel": f"output.{panel_name}"})
 
-    def format_goal(self, goal_data: Optional[GoalData]) -> str:
+    def format_goal(self, goal_data: GoalData | None) -> str:
         """
         Format goal data as plain text for output panel
         """
@@ -183,26 +179,26 @@ class LeanInfoview:
         if not goals:
             return "No goals"
         # Format each goal
-        output: List[str] = []
+        output: list[str] = []
         for i, goal in enumerate(goals):
             output.append(f"-- Goal {i + 1}:")
-            if isinstance(goal, str): # Simple string goal
+            if isinstance(goal, str):  # Simple string goal
                 output.append(goal)
-            elif isinstance(goal, dict): # Structured goal with hypotheses and conclusion
+            elif isinstance(goal, dict):  # Structured goal with hypotheses and conclusion
                 # Show hypotheses
-                hypotheses: List[str] = goal.get('hypotheses', []) #type:ignore
+                hypotheses: list[str] = goal.get('hypotheses', [])  # type:ignore
                 if hypotheses:
                     output.append("\n-- Hypotheses:")
                     for h in hypotheses:
                         output.append(f"  {h}")
                 # Show goal
-                conclusion: str = goal.get('conclusion', goal.get('type', 'unknown')) #type:ignore
+                conclusion: str = goal.get('conclusion', goal.get('type', 'unknown'))  # type:ignore
                 output.append(f"\n⊢ {conclusion}")
                 output.append("")
             output.append("-" * 40)
         return "\n".join(output)
 
-    def format_type(self, term_goal_data: Optional[TermGoalData]) -> str:
+    def format_type(self, term_goal_data: TermGoalData | None) -> str:
         """
         Format expected type data as plain text
         """
@@ -211,16 +207,15 @@ class LeanInfoview:
         term = term_goal_data.get('goal')
         if not term:
             return ""
-        output: List[str] = []
+        output: list[str] = []
         output.append("-- Expected Type:")
         output.append(term)
         output.append("-" * 40)
         return "\n".join(output)
 
-
     def display_goal_popup(self, session: Session, view: sublime.View,
-        goal_data: Optional[GoalData] = None,
-        term_goal_data: Optional[TermGoalData] = None,
+        goal_data: GoalData | None = None,
+        term_goal_data: TermGoalData | None = None,
     ) -> None:
         """
         Display goal state and expected type in an mdpopups popup
@@ -284,7 +279,7 @@ class LeanInfoview:
         }
         """
         # Show popup at cursor position
-        mdpopups.show_popup( #type:ignore
+        mdpopups.show_popup(  # type:ignore
             view,
             markdown_content,
             md=True,
@@ -298,15 +293,15 @@ class LeanInfoview:
         )
 
     def format_combined_markdown(self, session: Session,
-        goal_data: Optional[GoalData] = None,
-        term_goal_data: Optional[TermGoalData] = None,
+        goal_data: GoalData | None = None,
+        term_goal_data: TermGoalData | None = None,
     ) -> str:
         """
         Format goal data and expected type as markdown for mdpopups
         """
         display_nogoals = session.config.settings.get(SETTING_INFOVIEW_DISPLAY_NOGOALS)
 
-        output: List[str] = []
+        output: list[str] = []
         output.append('### Lean Infoview\n')
         # Add goals section if available
         if goal_data or display_nogoals:
@@ -322,7 +317,7 @@ class LeanInfoview:
                 output.append('\n')
         return ''.join(output)
 
-    def format_goal_markdown(self, goal_data: Optional[GoalData]) -> str:
+    def format_goal_markdown(self, goal_data: GoalData | None) -> str:
         """
         Format goal data as markdown (internal helper)
         """
@@ -333,13 +328,13 @@ class LeanInfoview:
         if not goals:
             return '<div class="no-goals">No goals</div>'
         # Format each goal
-        output: List[str] = []
+        output: list[str] = []
         for i, goal in enumerate(goals):
             output.append(f'<div class="goal-header">Goal {i + 1}:</div>\n')
-            if isinstance(goal, str): # Simple string goal
+            if isinstance(goal, str):  # Simple string goal
                 output.append(f'```lean\n{goal}\n```\n')
-            elif isinstance(goal, dict): # Structured goal with hypotheses and conclusion
-                hypotheses: List[str] = goal.get('hypotheses', []) #type:ignore
+            elif isinstance(goal, dict):  # Structured goal with hypotheses and conclusion
+                hypotheses: list[str] = goal.get('hypotheses', [])  # type:ignore
                 if hypotheses:
                     output.append('<div class="hypotheses">\n')
                     for h in hypotheses:
@@ -350,13 +345,13 @@ class LeanInfoview:
                 # Show turnstile
                 output.append('<div class="turnstile">⊢</div>\n')
                 # Show goal/conclusion
-                conclusion: str = goal.get('conclusion', goal.get('type', 'unknown')) #type:ignore
+                conclusion: str = goal.get('conclusion', goal.get('type', 'unknown'))  # type:ignore
                 conclusion_escaped = self._escape_html(conclusion)
                 output.append(f'<div class="conclusion">`{conclusion_escaped}`</div>\n')
             output.append('\n')
         return ''.join(output)
 
-    def format_type_markdown(self, term_goal_data: Optional[TermGoalData]) -> str:
+    def format_type_markdown(self, term_goal_data: TermGoalData | None) -> str:
         """
         Format expected type as markdown
         """
@@ -365,7 +360,7 @@ class LeanInfoview:
         term = term_goal_data.get('goal')
         if not term:
             return ""
-        output: List[str] = []
+        output: list[str] = []
         output.append('<div class="expected-type-header">Expected Type:</div>\n')
         # Escape HTML
         if isinstance(term, str):
@@ -380,7 +375,6 @@ class LeanInfoview:
                 .replace('>', '&gt;')
                 .replace('"', '&quot;')
                 .replace("'", '&#39;'))
-
 
 
 class ToggleLeanInfoviewCursorCommand(LspWindowCommand):
@@ -403,7 +397,7 @@ class ToggleLeanInfoviewCursorCommand(LspWindowCommand):
             # show panel
             if not panel:
                 panel = self.window.create_output_panel(panel_name)
-                panel.run_command('append', { 'characters': 'Lean 4 Infoview\n\nMove your cursor in a Lean file to see goal states.\n' })
+                panel.run_command('append', {'characters': 'Lean 4 Infoview\n\nMove your cursor in a Lean file to see goal states.\n'})
                 self.window.run_command("show_panel", {"panel": f"output.{panel_name}"})
             # hide panel
             else:
@@ -425,7 +419,6 @@ class ToggleLeanInfoviewCursorCommand(LspWindowCommand):
             # hide popup
             else:
                 mdpopups.hide_popup(view)
-
 
 
 class LeanInfoviewCommand(LspTextCommand):
