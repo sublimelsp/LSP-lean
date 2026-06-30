@@ -38,7 +38,7 @@ def get_lean_session(view: sublime.View) -> Session | None:
     if not manager:
         return None
     # Find Lean session
-    for session in manager.sessions(view):
-        if (session.config.name == PACKAGE_NAME):
+    for session in manager.get_sessions():
+        if session.config.name == PACKAGE_NAME:
             return session
     return None
