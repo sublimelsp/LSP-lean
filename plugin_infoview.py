@@ -6,7 +6,6 @@ from typing import Any, TYPE_CHECKING
 import mdpopups
 import sublime
 from LSP.plugin import LspTextCommand, LspWindowCommand, Request, Response, Session, filename_to_uri
-from LSP.plugin.core.types import ClientStates
 
 from .plugin_utils import (
     PACKAGE_NAME,
@@ -35,10 +34,6 @@ class LeanInfoview:
         """
         Request goal state at cursor position from Lean LSP server
         """
-        # Check if session is ready
-        if session.state != ClientStates.READY:
-            sublime.status_message(f"{PACKAGE_NAME}: Session not ready yet")
-            return
         # Lean requires saved files to process
         if view.is_dirty():
             sublime.status_message(f"{PACKAGE_NAME}: File has unsaved changes, save first")
