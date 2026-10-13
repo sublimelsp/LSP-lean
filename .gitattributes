@@ -9,3 +9,4 @@
 /.gitignore               export-ignore
 /tox.ini                  export-ignore
 /LSP-lean.sublime-project export-ignore
+tests/ export-ignore
