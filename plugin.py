@@ -2,29 +2,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import sublime
-from LSP.plugin import AbstractPlugin, Session, SessionViewProtocol, register_plugin, unregister_plugin
+from LSP.plugin import LspPlugin, Session, SessionViewProtocol
 from typing_extensions import override
 
 from .plugin_infoview import LeanInfoview
 from .plugin_unicode import unicode_input
-from .plugin_utils import PACKAGE_NAME, SETTINGS_FILE
 
 if TYPE_CHECKING:
     import weakref
 
 
-class Lean(AbstractPlugin):
-
-    @classmethod
-    def name(cls) -> str:
-        return PACKAGE_NAME
-
-    @classmethod
-    def configuration(cls) -> tuple[sublime.Settings, str]:
-        file_name = SETTINGS_FILE
-        file_path = f"Packages/{PACKAGE_NAME}/{file_name}"
-        return sublime.load_settings(file_name), file_path
+class Lean(LspPlugin):
 
     def __init__(self, weaksession: weakref.ref[Session]) -> None:
         super().__init__(weaksession)
@@ -46,9 +34,9 @@ class Lean(AbstractPlugin):
 
 
 def plugin_loaded() -> None:
-    register_plugin(Lean)
+    Lean.register()
     unicode_input.load_abbreviations()  # Initialize unicode input
 
 
 def plugin_unloaded() -> None:
-    unregister_plugin(Lean)
+    Lean.unregister()
