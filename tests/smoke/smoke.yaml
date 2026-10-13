@@ -1,5 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/sublimelsp/lsp_smoke_test/v1/smoke.schema.json
 file: sample.lean
+# Lean reports "Unknown identifier `missingName`" (lowercase "unknown" in older versions).
 expected_diagnostics:
+  source: Lean 4
   severity: 1
-  message: unknown identifier
+  message: '[Uu]nknown identifier'
