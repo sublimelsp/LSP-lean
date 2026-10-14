@@ -54,14 +54,12 @@ class LeanInfoview:
         }
         # Send custom Lean LSP request for plain goal
         if session.config.settings.get(SETTING_INFOVIEW_DISPLAY_CURRENT_GOALS):
-            # print(f"{PACKAGE_NAME}: Requesting goal at {row}:{col} for {view.file_name()}")
             request: Request[TextDocumentPositionParams, GoalData] = Request("$/lean/plainGoal", params)
             session.send_request(request,
                 lambda response: self.on_goal_response(session, view, response),
                 lambda error: sublime.error_message(f"{PACKAGE_NAME} Error: {error}"))
         # Also request expected type if enabled
         if session.config.settings.get(SETTING_INFOVIEW_DISPLAY_EXPECTED_TYPE):
-            # print(f"{PACKAGE_NAME}: Requesting term at {row}:{col} for {view.file_name()}")
             term_goal_request: Request[TextDocumentPositionParams, TermGoalData] = Request("$/lean/plainTermGoal", params)
             session.send_request(term_goal_request,
                 lambda response: self.on_term_goal_response(session, view, response),
@@ -369,8 +367,6 @@ class ToggleLeanInfoviewCursorCommand(LspWindowCommand):
     Command to toggle the Lean infoview visibility.
     """
 
-    session_name = PACKAGE_NAME
-
     def run(self):
         session = self.session()
         if not session:
@@ -414,8 +410,6 @@ class LeanInfoviewCommand(LspTextCommand):
     Whether an output panel or popup appears depends on settings
     Usage: `view.run_command('lean_infoview')`
     """
-
-    session_name = PACKAGE_NAME
 
     def run(self, edit: sublime.Edit):
         session = self.session_by_name(PACKAGE_NAME)
