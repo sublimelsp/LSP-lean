@@ -172,7 +172,7 @@ class LeanUnicodeListener(sublime_plugin.ViewEventListener):
                     return
             self.abbrev_text = ""
             self.abbrev_region = None
-            sublime.error_message(f'{PACKAGE_NAME}: Invalid abbreviation: "{abbrev_text}"')
+            sublime.status_message(f'{PACKAGE_NAME}: Invalid abbreviation: "{abbrev_text}"')
 
     def replace_abbreviation(self, replacement: str) -> None:
         """
